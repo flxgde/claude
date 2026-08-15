@@ -157,8 +157,9 @@ pick_with_fzf() {
   local result
   result=$(printf '%s\n' "$@" \
     | fzf --multi --height=50% --border --reverse \
+          --bind "space:toggle+down,ctrl-a:select-all" \
           --prompt="$label > " \
-          --header="TAB = select/deselect  |  ENTER = confirm  |  ESC = select all") || true
+          --header="SPACE = select/deselect  |  ENTER = confirm  |  CTRL-A = select all") || true
   if [[ -z "$result" ]]; then
     printf '%s,' "$@" | sed 's/,$//'
   else

@@ -44,6 +44,12 @@ readonly OPENCODE_DIR="$PWD/.opencode"
 TOOL="both"
 SELECTED_AGENTS=""
 SELECTED_SKILLS=""
+GIT_USE=""
+GIT_AUTOCOMMIT=""
+GIT_USE_MRS=""
+GIT_CREATE_MRS=""
+GIT_PUSH_DIRECT=""
+GIT_WIZARD=false
 NO_CONFIRM=false
 NO_BACKUP=false
 DRY_RUN=false
@@ -59,7 +65,7 @@ fi
 
 info() { echo -e "${BLUE}[info]${RESET}  $*"; }
 ok()   { echo -e "${GREEN}[ ok]${RESET}  $*"; }
-warn() { echo -e "${YELLOW}[warn]${RESET}  $*"; }
+warn() { echo -e "${YELLOW}[warn]${RESET}  $*" >&2; }
 die()  { echo "[error] $*" >&2; exit 1; }
 
 run() {
@@ -80,14 +86,29 @@ ${BOLD}Options:${RESET}
   -t, --tool <tool>       claude, opencode, or both (default: both)
   -a, --agents <names>    Comma-separated names, or "all" (skips the picker)
   -s, --skills <names>    Comma-separated names, or "all" (skips the picker)
-      --no-confirm        Silent install — no pickers, no plan, no prompts
+      --no-confirm        Silent install — no pickers, no wizard, no plan, no prompts
       --no-backup         Skip backup of existing files before overwriting
   -n, --dry-run           Show the plan without making any changes
   -u, --uninstall         Remove installed agents/skills/rules from the project
   -h, --help              Show this help
 
+${BOLD}Git workflow:${RESET}
+  Interactively, one leading question: commit locally / no git / Custom. "Commit locally" (the
+  recommended default) never touches the remote — no branch/MR workflow, no direct push. "Custom"
+  opens the full five-question breakdown. Under --no-confirm, or if any flag below is passed, no
+  question is asked at all — flags win outright, and any flag left unset takes the "commit locally"
+  default for its dimension.
+      --use-git <yes|no>       Does the agent use git in this project at all? (default: yes)
+      --auto-commit <yes|no>   Commit its own completed work without asking? (default: yes)
+      --use-mrs <yes|no>       Work via feature branch + merge/pull request? (default: no)
+      --create-mrs <yes|no>    Open the MR/PR itself (e.g. gh/glab), not just push? (default: no)
+      --push-direct <yes|no>   Allow direct pushes to the main/trunk branch? (default: no)
+      --git-wizard             Jump straight to the five-question breakdown, skipping the leading
+                                question (ignored under --no-confirm)
+
 ${BOLD}What goes where:${RESET}
-  ./AGENTS.md              Shared rules payload — read natively by OpenCode
+  ./AGENTS.md              Shared rules payload — read natively by OpenCode. Its "Git Workflow"
+                            section is generated from the settings above.
   ./.claude/CLAUDE.md       One-line "@AGENTS.md" import — Claude Code only reads CLAUDE.md
   ./.claude/agents/*.md     Claude Code subagents
   ./.claude/skills/<name>/  Skills — also read directly by OpenCode from this same path
@@ -97,11 +118,18 @@ ${BOLD}What goes where:${RESET}
   both tools and are always installed/removed together regardless of --tool.
 
 ${BOLD}Examples:${RESET}
-  # Interactive — pick, review plan, ENTER to confirm (default, both tools)
+  # Interactive — pick, one git-workflow question (commit locally / no git / Custom), review
+  # plan, ENTER to confirm (both tools)
   ./install.sh
 
   # Silent install of everything, OpenCode only
   ./install.sh --tool opencode --no-confirm
+
+  # Skip straight to the full git-workflow breakdown instead of the one leading question
+  ./install.sh --git-wizard
+
+  # Silent install with an explicit git workflow: auto-commit, MR-based, agent opens its own MRs
+  ./install.sh --no-confirm --use-mrs yes --create-mrs yes
 
   # One-shot from web (run from the target project's directory)
   bash <(curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/install.sh)
@@ -115,6 +143,12 @@ while [[ $# -gt 0 ]]; do
     -t|--tool)       TOOL="$2"; shift 2 ;;
     -a|--agents)     SELECTED_AGENTS="$2"; shift 2 ;;
     -s|--skills)     SELECTED_SKILLS="$2"; shift 2 ;;
+       --use-git)     GIT_USE="$2"; shift 2 ;;
+       --auto-commit) GIT_AUTOCOMMIT="$2"; shift 2 ;;
+       --use-mrs)     GIT_USE_MRS="$2"; shift 2 ;;
+       --create-mrs)  GIT_CREATE_MRS="$2"; shift 2 ;;
+       --push-direct) GIT_PUSH_DIRECT="$2"; shift 2 ;;
+       --git-wizard) GIT_WIZARD=true; shift ;;
        --no-confirm) NO_CONFIRM=true; shift ;;
        --no-backup)  NO_BACKUP=true; shift ;;
     -n|--dry-run)    DRY_RUN=true; shift ;;
@@ -126,6 +160,12 @@ done
 
 [[ "$TOOL" == "claude" || "$TOOL" == "opencode" || "$TOOL" == "both" ]] \
   || die "Tool must be 'claude', 'opencode', or 'both'"
+
+for pair in "--use-git:$GIT_USE" "--auto-commit:$GIT_AUTOCOMMIT" "--use-mrs:$GIT_USE_MRS" \
+            "--create-mrs:$GIT_CREATE_MRS" "--push-direct:$GIT_PUSH_DIRECT"; do
+  flag="${pair%%:*}"; val="${pair#*:}"
+  [[ -z "$val" || "$val" == "yes" || "$val" == "no" ]] || die "$flag must be 'yes' or 'no'"
+done
 
 tool_active() { [[ "$TOOL" == "both" || "$TOOL" == "$1" ]]; }
 
@@ -170,14 +210,16 @@ pick_with_fzf() {
 pick_with_prompt() {
   local label="$1"; shift
   local items=("$@")
-  echo ""
-  echo -e "${BOLD}Available $label:${RESET}"
-  for i in "${!items[@]}"; do
-    printf "  %2d) %s\n" "$((i+1))" "${items[$i]}"
-  done
-  echo ""
-  echo -n "Numbers (space-separated) or 'all' [all]: "
-  read -r selection
+  {
+    echo ""
+    echo -e "${BOLD}Available $label:${RESET}"
+    for i in "${!items[@]}"; do
+      printf "  %2d) %s\n" "$((i+1))" "${items[$i]}"
+    done
+    echo ""
+  } >&2
+  local selection
+  read -r -p "Numbers (space-separated) or 'all' [all]: " selection
   if [[ -z "$selection" || "$selection" == "all" ]]; then
     printf '%s,' "${items[@]}" | sed 's/,$//'
   else
@@ -204,6 +246,42 @@ pick() {
   fi
 }
 
+# ── Single-choice picker (git workflow wizard) ────────────────────────────────
+ask_choice() {
+  local question="$1"; shift
+  local options=("$@")
+  local result
+
+  if command -v fzf &>/dev/null; then
+    result=$(printf '%s\n' "${options[@]}" \
+      | fzf --height=40% --border --reverse \
+            --prompt="$question > " \
+            --header="ENTER = confirm") || true
+  else
+    {
+      echo ""
+      echo -e "${BOLD}$question${RESET}"
+      local i
+      for i in "${!options[@]}"; do
+        printf "  %d) %s\n" "$((i+1))" "${options[$i]}"
+      done
+    } >&2
+    local sel
+    read -r -p "Choice [1) ${options[0]}]: " sel
+    if [[ -z "$sel" ]]; then
+      result="${options[0]}"
+    elif [[ "$sel" =~ ^[0-9]+$ && $((sel-1)) -ge 0 && $((sel-1)) -lt ${#options[@]} ]]; then
+      result="${options[$((sel-1))]}"
+    else
+      warn "Invalid choice — defaulting to '${options[0]}'"
+      result="${options[0]}"
+    fi
+  fi
+
+  [[ -z "$result" ]] && result="${options[0]}"
+  echo "$result"
+}
+
 # --no-confirm: skip pickers and default to everything
 if $NO_CONFIRM; then
   [[ -z "$SELECTED_AGENTS" ]] && SELECTED_AGENTS="all"
@@ -212,6 +290,125 @@ else
   [[ -z "$SELECTED_AGENTS" ]] && SELECTED_AGENTS=$(pick "Agents" "${ALL_AGENTS[@]}")
   [[ -z "$SELECTED_SKILLS" ]] && SELECTED_SKILLS=$(pick "Skills" "${ALL_SKILLS[@]}")
 fi
+
+# ── Git workflow ───────────────────────────────────────────────────────────────
+# Answers become the "## 4. Git Workflow" section of AGENTS.md — see render_git_workflow_policy().
+# Meaningless for --uninstall (it deletes AGENTS.md outright, doesn't care about its content).
+#
+# Interactively, this always leads with one question offering the non-invasive default as a single
+# named choice, "no git" as another, and "Custom..." to drop into the full five-question breakdown —
+# rather than asking five separate questions up front. Explicit --use-git/--auto-commit/--use-mrs/
+# --create-mrs/--push-direct flags always win and skip whichever question they answer;
+# passing any of them skips the leading question entirely (the CLI is itself "custom" already).
+# --git-wizard jumps straight to the five-question breakdown, skipping the leading question.
+ask_git_workflow_details() {
+  [[ -z "$GIT_USE" ]] && GIT_USE=$(ask_choice \
+    "Does the agent work with git in this project?" "yes" "no")
+
+  if [[ "$GIT_USE" == "yes" ]]; then
+    [[ -z "$GIT_AUTOCOMMIT" ]] && GIT_AUTOCOMMIT=$(ask_choice \
+      "Commit its own completed work automatically, without asking?" "yes" "no")
+    [[ -z "$GIT_USE_MRS" ]] && GIT_USE_MRS=$(ask_choice \
+      "Work via feature branch + merge/pull request, instead of the current branch directly?" "no" "yes")
+    if [[ "$GIT_USE_MRS" == "yes" ]]; then
+      [[ -z "$GIT_CREATE_MRS" ]] && GIT_CREATE_MRS=$(ask_choice \
+        "Open the merge/pull request itself (e.g. gh/glab), not just push the branch?" "no" "yes")
+    else
+      GIT_CREATE_MRS="no"
+    fi
+    [[ -z "$GIT_PUSH_DIRECT" ]] && GIT_PUSH_DIRECT=$(ask_choice \
+      "Allow direct pushes to the main/trunk branch?" "no" "yes")
+  else
+    GIT_AUTOCOMMIT="no"; GIT_USE_MRS="no"; GIT_CREATE_MRS="no"; GIT_PUSH_DIRECT="no"
+  fi
+}
+
+if ! $UNINSTALL; then
+  flags_preset=false
+  [[ -n "$GIT_USE$GIT_AUTOCOMMIT$GIT_USE_MRS$GIT_CREATE_MRS$GIT_PUSH_DIRECT" ]] && flags_preset=true
+
+  if $NO_CONFIRM || $flags_preset; then
+    : # no prompting — fall through to the defaults below for whatever's still unset
+  elif $GIT_WIZARD; then
+    ask_git_workflow_details
+  else
+    OPT_DEFAULT="Commit automatically, no push or MRs (recommended)"
+    OPT_NOGIT="No git"
+    OPT_CUSTOM="Custom..."
+    workflow_choice=$(ask_choice "How should the agent handle git in this project?" \
+      "$OPT_DEFAULT" "$OPT_NOGIT" "$OPT_CUSTOM")
+    case "$workflow_choice" in
+      "$OPT_NOGIT")
+        GIT_USE="no"; GIT_AUTOCOMMIT="no"; GIT_USE_MRS="no"; GIT_CREATE_MRS="no"; GIT_PUSH_DIRECT="no" ;;
+      "$OPT_CUSTOM")
+        ask_git_workflow_details ;;
+      *)
+        GIT_USE="yes"; GIT_AUTOCOMMIT="yes"; GIT_USE_MRS="no"; GIT_CREATE_MRS="no"; GIT_PUSH_DIRECT="no" ;;
+    esac
+  fi
+
+  [[ -z "$GIT_USE" ]]          && GIT_USE="yes"
+  [[ -z "$GIT_AUTOCOMMIT" ]]   && GIT_AUTOCOMMIT="yes"
+  [[ -z "$GIT_USE_MRS" ]]      && GIT_USE_MRS="no"
+  [[ -z "$GIT_CREATE_MRS" ]]   && GIT_CREATE_MRS="no"
+  [[ -z "$GIT_PUSH_DIRECT" ]]  && GIT_PUSH_DIRECT="no"
+fi
+
+# Renders the "## 4. Git Workflow" bullet list from the wizard answers above.
+render_git_workflow_policy() {
+  if [[ "$GIT_USE" != "yes" ]]; then
+    echo "- This project's workflow does not involve git — do not run git commands or create commits."
+    return
+  fi
+
+  if [[ "$GIT_AUTOCOMMIT" == "yes" ]]; then
+    echo "- After a full implementation cycle (feature code + passing tests), commit automatically — no need to ask."
+    echo "- Only after tests pass — never commit a broken state."
+    echo "- Write a meaningful commit message: imperative mood, concise subject line, body if the why needs explaining."
+    echo "- Stage only the files relevant to the feature — never \`git add .\` blindly."
+  else
+    echo "- Always ask before committing — do not commit automatically, even after a completed feature cycle."
+  fi
+
+  if [[ "$GIT_USE_MRS" == "yes" ]]; then
+    echo "- Work on a feature branch, not directly on the main/trunk branch."
+    if [[ "$GIT_CREATE_MRS" == "yes" ]]; then
+      echo "- Once the branch is pushed and ready for review, open the merge/pull request yourself (e.g. \`gh pr create\` / \`glab mr create\`)."
+    else
+      echo "- Push the feature branch, but leave opening the merge/pull request to the user."
+    fi
+  else
+    echo "- Do not use a branch + merge/pull-request workflow — work directly on the current branch."
+  fi
+
+  if [[ "$GIT_PUSH_DIRECT" == "yes" ]]; then
+    echo "- Direct pushes to the main/trunk branch are allowed when appropriate."
+  else
+    echo "- Never push directly to the main/trunk branch."
+  fi
+}
+
+# One-line summary shown in the install plan.
+git_workflow_summary() {
+  if [[ "$GIT_USE" != "yes" ]]; then
+    echo "no git"
+    return
+  fi
+  local parts=()
+  [[ "$GIT_AUTOCOMMIT" == "yes" ]] && parts+=("auto-commit") || parts+=("ask before commit")
+  if [[ "$GIT_USE_MRS" == "yes" ]]; then
+    [[ "$GIT_CREATE_MRS" == "yes" ]] && parts+=("opens MRs itself") || parts+=("pushes branch (no MR)")
+  else
+    parts+=("no branch/MR workflow")
+  fi
+  [[ "$GIT_PUSH_DIRECT" == "yes" ]] && parts+=("direct push to main allowed") || parts+=("no direct push to main")
+
+  local out="" p
+  for p in "${parts[@]}"; do
+    [[ -z "$out" ]] && out="$p" || out="$out, $p"
+  done
+  echo "$out"
+}
 
 # ── Resolve selection strings to arrays ──────────────────────────────────────
 resolve() {
@@ -305,6 +502,26 @@ write_opencode_agent() {
   fi
 }
 
+# Writes AGENTS.md with the "<!-- GIT_WORKFLOW_POLICY -->" marker replaced by the wizard's answers.
+write_agents_md() {
+  local dest="$1"
+  if $DRY_RUN; then
+    echo -e "${YELLOW}[dry]${RESET}   render AGENTS.md (git workflow: $(git_workflow_summary)) -> '$dest'"
+    return
+  fi
+  local marker_line
+  marker_line=$(grep -n '<!-- GIT_WORKFLOW_POLICY -->' "$AGENTS_MD_SRC" | head -1 | cut -d: -f1)
+  if [[ -z "$marker_line" ]]; then
+    cp "$AGENTS_MD_SRC" "$dest"
+    return
+  fi
+  {
+    head -n $((marker_line - 1)) "$AGENTS_MD_SRC"
+    render_git_workflow_policy
+    tail -n +$((marker_line + 1)) "$AGENTS_MD_SRC"
+  } > "$dest"
+}
+
 # ── Destination status check ──────────────────────────────────────────────────
 dest_status() {
   if   [[ -L "$1" ]]; then echo "overwrite-symlink"
@@ -370,6 +587,7 @@ print_plan() {
   echo    "  ──────────────────────────────────────────────────"
   print_plan_row "$verb" "AGENTS.md" "$(dest_status "$AGENTS_MD_DEST")"
   tool_active claude && print_plan_row "$verb" ".claude/CLAUDE.md" "$(dest_status "$CLAUDE_MD_DEST")"
+  [[ "$verb" == "Install" ]] && echo -e "     ${DIM}Git workflow: $(git_workflow_summary)${RESET}"
   echo ""
 
   if [[ ${#AGENTS_TO_INSTALL[@]} -gt 0 ]]; then
@@ -475,8 +693,8 @@ tool_active opencode && run "mkdir -p '$OPENCODE_AGENTS_DEST'"
 
 [[ -f "$AGENTS_MD_SRC" ]] || die "AGENTS.md not found at $AGENTS_MD_SRC"
 backup_item "$AGENTS_MD_DEST"
-run "cp '$AGENTS_MD_SRC' '$AGENTS_MD_DEST'"
-ok "Config: AGENTS.md"
+write_agents_md "$AGENTS_MD_DEST"
+ok "Config: AGENTS.md (git workflow: $(git_workflow_summary))"
 
 if tool_active claude; then
   backup_item "$CLAUDE_MD_DEST"
@@ -514,3 +732,4 @@ done
 echo ""
 info "Done. AGENTS.md + ${#AGENTS_TO_INSTALL[@]} agent(s) + ${#SKILLS_TO_INSTALL[@]} skill(s) installed into $PWD (tool: $TOOL)"
 $BACKUP_USED && info "Backup saved to $BACKUP_DIR"
+exit 0

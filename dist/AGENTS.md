@@ -20,14 +20,9 @@
 - Ask: "Would a staff engineer approve this?"
 - Run tests, check logs, demonstrate correctness
 
-## 4. Commit After Completed Feature Cycle
+## 4. Git Workflow
 
-After a full implementation cycle (feature code + passing tests), commit automatically — no need to ask:
-- Only when inside a git repository (`git rev-parse --git-dir` to check)
-- Only after tests pass — never commit a broken state
-- Do **not** push — commit locally only
-- Write a meaningful commit message: imperative mood, concise subject line, body if the why needs explaining
-- Stage only the files relevant to the feature — never `git add .` blindly
+<!-- GIT_WORKFLOW_POLICY -->
 
 ## 5. Demand Elegance (Balanced)
 

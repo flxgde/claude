@@ -57,6 +57,30 @@ equivalent and are dropped; `permissions.allow` Bash patterns become `permission
 `model:` field is deliberately left unset in the OpenCode output so the agent inherits whichever
 provider/model you've configured there instead of assuming Anthropic.
 
+### Git workflow
+
+`AGENTS.md`'s "Git Workflow" section is generated at install time, not static. Interactively, you get
+one leading question — **commit locally** (recommended default), **no git**, or **Custom** — rather
+than five questions up front; Custom opens the full breakdown (does it use git, auto-commit, work via
+feature branch + MR, open that MR itself, push directly to main — each independently).
+
+Under `--no-confirm`, or if you pass any of the flags below, no question is asked at all: flags win
+outright, and anything left unset takes the "commit locally" default for that one dimension.
+`--use-git` (default `yes`), `--auto-commit` (default `yes`), `--use-mrs` (default `no`),
+`--create-mrs` (default `no`), `--push-direct` (default `no`). `--git-wizard` skips straight to the
+full breakdown, bypassing the leading question.
+
+```bash
+# Silent: local auto-commit only, no MRs, no push
+./install.sh --no-confirm
+
+# Explicit MR-based workflow instead
+./install.sh --no-confirm --use-mrs yes --create-mrs yes
+
+# Skip the leading question, go straight to the full breakdown
+./install.sh --git-wizard
+```
+
 ## Agents
 
 | Agent | Model | Description |

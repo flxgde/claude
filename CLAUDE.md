@@ -49,7 +49,13 @@ discovery, copying, and the OpenCode frontmatter transform still work. There's n
 dry-run is the whole safety net. When touching the OpenCode render logic specifically, `cat` a couple
 of the rendered `.opencode/agents/*.md` files — especially one with a `permissions.allow` Bash list
 (e.g. `spring-boot-engineer`) and one reviewer with no `Write`/`Edit` (e.g. `spring-boot-reviewer`) —
-to confirm the `permission:` block came out right.
+to confirm the `permission:` block came out right. When touching the git-workflow policy, `sed -n
+'/## 4. Git Workflow/,/## 5/p' AGENTS.md` after an install with a few different
+`--use-git`/`--auto-commit`/`--use-mrs`/`--create-mrs`/`--push-direct` combinations (including
+`--use-git no` and the plain no-flags default) to confirm the rendered bullet list matches. Also check
+the actual exit code
+(`echo $?`, not just the printed output) after a plain `--no-confirm` run — see the `exit 0` note below
+for why that's not automatically 0.
 
 ## Architecture
 
@@ -113,12 +119,31 @@ for it. Don't add a `.opencode/skills/` copy step; it would be redundant.
 
 ### `dist/AGENTS.md` — the shared rules payload
 
-Installed verbatim to a target project's root `AGENTS.md` (OpenCode reads this directly) and imported
-by the one-line `.claude/CLAUDE.md` install writes (`@AGENTS.md` — Claude Code's documented pattern for
+Installed to a target project's root `AGENTS.md` (OpenCode reads this directly) and imported by the
+one-line `.claude/CLAUDE.md` install writes (`@AGENTS.md` — Claude Code's documented pattern for
 sharing rules with AGENTS.md-based tools; Claude Code never reads `AGENTS.md` on its own). Because both
 tools read this same file, keep it tool-agnostic where practical — avoid hardcoding one tool's paths or
 mechanisms (e.g. the agent-directory line spells out both `.claude/agents/` and `.opencode/agents/`
 rather than assuming one).
+
+Not installed verbatim: the `## 4. Git Workflow` section is a single `<!-- GIT_WORKFLOW_POLICY -->`
+marker line in the source, and `install.sh`'s `write_agents_md()` splices in a generated bullet list
+(`render_git_workflow_policy()`) in its place at install time — content controlled by
+`--use-git`/`--auto-commit`/`--use-mrs`/`--create-mrs`/`--push-direct`.
+
+Interactively (and not `--no-confirm`, and no flag already set), the flow leads with one question via
+`ask_choice`: "commit locally" (the non-invasive default — never touches the remote), "no git", or
+"Custom...". Only "Custom" drops into `ask_git_workflow_details()`, the full five-question breakdown
+(same function `--git-wizard` calls directly, skipping the leading question). Passing any one of the
+five flags skips the leading question entirely — the CLI is already "custom" at that point — and fills
+whichever dimensions are still unset with the "commit locally" default. This two-tier shape (one
+low-friction question by default, full control one level down) is deliberate: asking all five questions
+unconditionally was tried first and was more setup than wanted for the common case.
+
+This is the one part of `dist/AGENTS.md` that's composed rather than static; if more sections become
+user-configurable later, follow the same marker-plus-render-function pattern rather than templating the
+whole file — and keep the same two-tier shape (one easy default-vs-custom question, not a list of
+independent questions) as the bar for any new wizard, not just this one.
 
 ### `reference/*.md` — fetched external docs
 
@@ -147,6 +172,11 @@ picker). Key behaviors:
   from inside the repo, and installs into the caller's cwd) — keep the script self-contained (no
   sourcing other repo files at runtime beyond `dist/agents/`, `dist/skills/`, `dist/AGENTS.md`) so that
   path keeps working.
+- Both the install and uninstall paths end with an explicit `exit 0`. Without it, the script's exit
+  code is whatever its last statement happened to return — the install path's last statement used to be
+  `$BACKUP_USED && info "..."`, which is `false && ...` (exit 1) on the common case of a fresh install
+  needing no backup, so `install.sh --no-confirm && next_step` silently treated a successful install as
+  a failure. If you add statements after the final `info`/`ok` call, keep (or move) the `exit 0` last.
 
 ## Conventions when adding or editing an agent/skill
 

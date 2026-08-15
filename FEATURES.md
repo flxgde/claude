@@ -17,6 +17,15 @@ Agents, skills, and rules are authored once and installed for **Claude Code and/
 - The rules payload (`dist/AGENTS.md`) installs to root `AGENTS.md` (OpenCode reads it natively) plus
   a one-line `.claude/CLAUDE.md` that does `@AGENTS.md` — Claude Code's own documented pattern for
   sharing rules with AGENTS.md-based tools, since Claude Code never reads `AGENTS.md` on its own.
+- One section of `AGENTS.md` is composed rather than static: whether the agent uses git at all,
+  auto-commits, works via feature branch + MR, opens that MR itself, and pushes directly to main — each
+  independently controllable via `--use-git`/`--auto-commit`/`--use-mrs`/`--create-mrs`/`--push-direct`
+  — renders the "## 4. Git Workflow" section. Interactively it's a single leading question — commit
+  locally (the non-invasive default), no git, or Custom (opens the full five-question breakdown) —
+  rather than five questions up front; that was tried first and was more setup than wanted. Any of the
+  five flags, or `--no-confirm`, skips the question(s) outright. First slice of the "composable
+  AGENTS.md" item below; the rest of the file
+  (tech defaults, agent-dispatch table) is still one static block regardless of what was selected.
 
 Known gaps in the translation, deliberately deferred:
 - OpenCode agent files ship with no `model:` set (inherits whatever provider/model you've configured
@@ -45,15 +54,17 @@ Known gaps in the translation, deliberately deferred:
 
 What's still missing to call the "simple setup" complete:
 
-- **AGENTS.md is picked as one static file** (`dist/AGENTS.md`), not composed from what was actually
-  selected. Someone who only installs `postgres-engineer` still gets Angular/Kotlin tech-default
-  prose in their `AGENTS.md`. Fix: split `dist/AGENTS.md` into fragments (a small shared core +
-  one fragment per stack/best-practice area) and concatenate only the fragments matching the
-  agents/skills/best-practices selected.
-- **"Best practices" isn't a selectable category yet** — only agents and skills are pickable. The
-  user's ask was to choose agents, skills, *and* best practices independently. Needs a third picker
-  (or folded into the CLAUDE.md-fragment split above) for things like "plan-mode policy",
-  "commit conventions", "tech defaults table" as opt-in blocks.
+- **Most of AGENTS.md is still one static block** (`dist/AGENTS.md`), not composed from what was
+  actually selected — only the git-workflow section (see above) is dynamic so far. Someone who only
+  installs `postgres-engineer` still gets Angular/Kotlin tech-default prose in their `AGENTS.md`. Fix:
+  extend the marker-plus-render-function pattern the git-workflow section uses to the rest of the file
+  (a small shared core + one fragment per stack/best-practice area), concatenating only what matches
+  the agents/skills/best-practices selected.
+- **"Best practices" beyond git workflow isn't a selectable category yet** — only agents, skills, and
+  the git-workflow settings are configurable. Needs the same treatment for things like "plan-mode
+  policy", "commit message conventions", "tech defaults table" as opt-in blocks, following the same
+  marker-plus-flags-with-a-sane-default pattern the git-workflow section established (default silently,
+  no wizard unless asked for) rather than inventing a new mechanism.
 - **No presets.** A `--preset kotlin-spring` / `--preset angular` shortcut for "the usual combo for
   this kind of project" would cover the common case without opening the picker.
 - **No manifest.** Nothing records what was installed (which agents/skills/version/hash) beyond the
@@ -62,8 +73,9 @@ What's still missing to call the "simple setup" complete:
 
 ## Next
 
-- **Composable CLAUDE.md** (see above) — the biggest gap between "download some files" and "set up
-  *my* CLAUDE.md from what I chose."
+- **Composable AGENTS.md, fully** (see above) — extend the git-workflow section's marker/render-function
+  pattern to the rest of the file. The biggest remaining gap between "download some files" and "set up
+  *my* AGENTS.md from what I chose."
 - **Install manifest** (`.claude/.manifest.json`): records selected agents/skills/best-practices,
   source repo ref, and per-file hash. Enables:
   - `./install.sh --update` — re-sync already-installed items to the latest version of `main`

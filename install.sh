@@ -29,7 +29,18 @@ GITHUB_BRANCH="main"
 GITHUB_ARCHIVE="https://github.com/${GITHUB_REPO}/archive/refs/heads/${GITHUB_BRANCH}.tar.gz"
 
 # ── Locate assets ─────────────────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
+# BASH_SOURCE is empty (zero elements, not just an empty string) when this script arrives via a
+# pipe rather than a real file — exactly the `curl -fsSL ... | bash` invocation form documented
+# above. Bare-expanding BASH_SOURCE[0] in that case is the same bash-3.2-style "unbound variable
+# under set -u" trap as the empty-named-array gotcha elsewhere in this codebase (see CLAUDE.md):
+# it doesn't stop the script (the fallback below still ends up correct by the time it's done), but
+# it does leak a scary "unbound variable" error to the terminal on every piped run. Check the
+# array length first, same fix pattern as everywhere else this gotcha shows up.
+if [[ ${#BASH_SOURCE[@]} -gt 0 ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
+else
+  SCRIPT_DIR=""
+fi
 _TMPDIR=""
 
 if [[ -d "$SCRIPT_DIR/dist/agents" && -d "$SCRIPT_DIR/dist/skills" ]]; then

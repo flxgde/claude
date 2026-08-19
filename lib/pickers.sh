@@ -99,7 +99,7 @@ pick_with_prompt() {
     echo ""
   } >&2
   local selection
-  read -r -p "Numbers (space-separated), 'all', 'none', or 'b' to go back [all]: " selection
+  prompt_read -r -p "Numbers (space-separated), 'all', 'none', or 'b' to go back [all]: " selection
   if [[ "$selection" =~ ^[Bb]([Aa][Cc][Kk])?$ ]]; then
     WIZARD_BACK=true
     return 0
@@ -184,7 +184,7 @@ pick_deselect_with_prompt() {
     echo ""
   } >&2
   local selection
-  read -r -p "Numbers to EXCLUDE (space-separated), Enter to include all, or 'b' to go back: " selection
+  prompt_read -r -p "Numbers to EXCLUDE (space-separated), Enter to include all, or 'b' to go back: " selection
   if [[ "$selection" =~ ^[Bb]([Aa][Cc][Kk])?$ ]]; then
     WIZARD_BACK=true
     return 0
@@ -261,7 +261,7 @@ ask_choice() {
       done
     } >&2
     local sel
-    read -r -p "Choice [1) ${options[0]}], or 'b' to go back: " sel
+    prompt_read -r -p "Choice [1) ${options[0]}], or 'b' to go back: " sel
     if [[ "$sel" =~ ^[Bb]([Aa][Cc][Kk])?$ ]]; then
       WIZARD_BACK=true
       return 0

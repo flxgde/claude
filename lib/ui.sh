@@ -21,6 +21,22 @@ run() {
 
 tool_active() { [[ "$TOOL" == "both" || "$TOOL" == "$1" ]]; }
 
+# Wraps `read` for every interactive prompt that isn't fzf-backed (fzf talks to /dev/tty on its
+# own regardless of fd 0, so it's unaffected). Needed for `curl -fsSL ... | bash`: bash's own stdin
+# in that invocation IS the piped script text, already at EOF by the time an interactive prompt
+# runs — a bare `read` there returns instantly (empty, non-zero) instead of waiting on the user,
+# and under this script's `set -e` that silently kills the whole install right after printing the
+# prompt, before the user can type anything. Falls back to plain `read` (unchanged behavior) when
+# fd 0 is already a terminal, or when /dev/tty isn't available at all (e.g. truly non-interactive —
+# in which case NO_CONFIRM should have been used and this was already going to fail either way).
+prompt_read() {
+  if [[ -t 0 || ! -r /dev/tty ]]; then
+    read "$@"
+  else
+    read "$@" < /dev/tty
+  fi
+}
+
 # fzf catches Ctrl-C/Esc itself and exits 130 as a *normal* exit (not killed-by-signal), so bash
 # never sees the interrupt propagate — without this check a cancelled picker would silently fall
 # through to its "empty result" default (select everything / first option) instead of aborting.
@@ -37,7 +53,7 @@ check_fzf_cancelled() {
 confirm() {
   $DRY_RUN && return 0
   echo -n "Proceed? [Y/n/b=back] "
-  read -r answer
+  prompt_read -r answer
   if [[ "$answer" =~ ^[Bb]([Aa][Cc][Kk])?$ ]]; then
     WIZARD_BACK=true
     return 0

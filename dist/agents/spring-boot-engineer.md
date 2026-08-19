@@ -9,6 +9,7 @@ skills:
   - jpa-patterns
   - logging-patterns
   - design-patterns
+  - clean-code
 permissions:
   allow:
     - "Bash(gradle:*)"

@@ -35,18 +35,56 @@ cd ~/projects/myapp
 /path/to/claude/install.sh --agents spring-boot-engineer,angular-engineer \
                             --skills kotlin-patterns,angular-patterns
 
+# Detect this project's stack and install exactly what applies
+/path/to/claude/install.sh --auto
+
 # Uninstall
 /path/to/claude/install.sh --uninstall
 ```
 
 Run `./install.sh --help` for full usage.
 
+### Setup modes: Auto / Guided / Manual
+
+Interactively (and whenever you haven't already passed `-a`/`-s`), the wizard leads with how to
+pick agents and skills:
+
+- **Auto** — scans the target project for concrete signals: a `build.gradle.kts`/`pom.xml` with a
+  Spring Boot dependency, `angular.json`, `Dockerfile`/`docker-compose.yml`, a Helm chart, an
+  OpenAPI spec, database driver dependencies, and so on — and installs exactly what matches,
+  explaining what it found before doing so. Conservative by design: only agents/skills tied to an
+  actual file-level signal get selected; generic ones (`architect`, `doc-writer`) are never
+  auto-added. Only offered when something was actually detected — on an empty/unrecognizable
+  directory it's simply not a choice (or, with `--auto` the flag, fails with a clear message
+  instead of installing nothing useful).
+- **Guided** — pick your tech stack (Kotlin, Java, Angular, PostgreSQL, MongoDB, Docker,
+  Kubernetes, Security/Keycloak, OpenAPI, ...) from one multi-select list, and the matching
+  agents/skills are installed for you — no file scanning involved, so it works in an empty
+  directory too (e.g. before writing any code).
+- **Manual** — pick agents and skills directly, the original picker flow.
+
+`--auto` on the command line skips straight to Auto (or fails clearly if nothing's detected and
+neither `-a` nor `-s` was given); there's no flag equivalent for Guided, since it's inherently an
+interactive Q&A.
+
+The git-workflow question (below) is always asked afterward, regardless of which of the three you
+picked — it configures AGENTS.md's content, a separate concern from which agents/skills get
+installed.
+
+### Best practices
+
+Also asked afterward, regardless of setup mode: a multi-select of six `AGENTS.md` working-style
+sections — Plan Mode Default, Self-Improvement Loop, Verification Before Done, Demand Elegance,
+Skills, Sub-agents — everything included by default, so you deselect the ones you don't want
+instead of picking from scratch. `--practices <ids>` sets it non-interactively
+(comma-separated, `all`, or `none`); `--no-confirm` defaults to `all`.
+
 ### What gets installed where
 
 | File | Tool | Notes |
 |---|---|---|
-| `./AGENTS.md` | Both | Canonical shared rules payload; OpenCode reads this natively |
-| `./.claude/CLAUDE.md` | Claude Code | One-line `@AGENTS.md` import — Claude Code only ever reads `CLAUDE.md` |
+| `./AGENTS.md` | Both | Canonical shared rules payload; OpenCode reads this natively. Tailored to your selection — the agent-dispatch table and stack-specific conventions only mention agents you actually installed |
+| `./.claude/CLAUDE.md` | Claude Code | `@AGENTS.md` import — Claude Code only ever reads `CLAUDE.md`. Appended to existing content rather than overwritten if the file already has some. |
 | `./.claude/agents/*.md` | Claude Code | Subagent definitions |
 | `./.claude/skills/<name>/` | Both | Skills — OpenCode reads this exact path directly, so there's no separate copy |
 | `./.opencode/agents/*.md` | OpenCode | Rendered from the same `dist/agents/` source, translated to OpenCode's frontmatter schema |
@@ -59,23 +97,25 @@ provider/model you've configured there instead of assuming Anthropic.
 
 ### Git workflow
 
-`AGENTS.md`'s "Git Workflow" section is generated at install time, not static. Interactively, you get
-one leading question — **commit locally** (recommended default), **no git**, or **Custom** — rather
-than five questions up front; Custom opens the full breakdown (does it use git, auto-commit, work via
-feature branch + MR, open that MR itself, push directly to main — each independently).
+`AGENTS.md`'s "Git Workflow" section is generated at install time, not static. It's always asked
+interactively, regardless of which setup mode (Auto/Guided/Manual) you picked above — it's a
+separate concern from which agents/skills get installed. One leading question — **no git**
+(recommended default), **commit locally**, or **Custom** — rather than five questions up front;
+Custom opens the full breakdown (does it use git, auto-commit, work via feature branch + MR, open
+that MR itself, push directly to main — each independently).
 
 Under `--no-confirm`, or if you pass any of the flags below, no question is asked at all: flags win
-outright, and anything left unset takes the "commit locally" default for that one dimension.
-`--use-git` (default `yes`), `--auto-commit` (default `yes`), `--use-mrs` (default `no`),
+outright, and anything left unset takes the "no git" default for that one dimension.
+`--use-git` (default `no`), `--auto-commit` (default `no`), `--use-mrs` (default `no`),
 `--create-mrs` (default `no`), `--push-direct` (default `no`). `--git-wizard` skips straight to the
 full breakdown, bypassing the leading question.
 
 ```bash
-# Silent: local auto-commit only, no MRs, no push
+# Silent: no git at all (the default)
 ./install.sh --no-confirm
 
-# Explicit MR-based workflow instead
-./install.sh --no-confirm --use-mrs yes --create-mrs yes
+# Silent, but with local auto-commit turned on
+./install.sh --no-confirm --use-git yes --auto-commit yes
 
 # Skip the leading question, go straight to the full breakdown
 ./install.sh --git-wizard
@@ -94,6 +134,7 @@ full breakdown, bypassing the leading question.
 | `security-engineer` | sonnet | Security review (OWASP, Spring Security, K8s) |
 | `docker-engineer` | sonnet | Dockerfiles, Docker Compose, multi-stage builds |
 | `kubernetes-engineer` | sonnet | Helm charts, K8s manifests, GitHub Actions CI/CD |
+| `ansible-engineer` | sonnet | Ansible playbooks, roles, server provisioning/config management |
 | `postgres-engineer` | sonnet | Schema design, Flyway migrations, query optimization |
 | `mongodb-engineer` | sonnet | Document modeling, aggregation pipelines, indexes |
 | `doc-writer` | haiku | README, ADR, API documentation |
@@ -107,6 +148,8 @@ full breakdown, bypassing the leading question.
 | `logging-patterns` | spring-boot-engineer |
 | `design-patterns` | spring-boot-engineer |
 | `angular-patterns` | angular-engineer, angular-reviewer |
+| `clean-code` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
+| `ansible-automation` | ansible-engineer |
 
 ## Structure
 

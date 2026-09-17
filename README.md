@@ -1,7 +1,7 @@
 # claude
 
-Agent, skill, and rules bundle for **Claude Code** and **OpenCode**. Installed project-locally via
-`install.sh` — no global install, always copies (no symlinks).
+Agent, skill, and rules bundle for **Claude Code** and **OpenCode**, installed project-locally via
+`install.sh`.
 
 ## Install
 
@@ -119,5 +119,5 @@ dist/agents/       Agent source files (*.md, Claude Code frontmatter dialect)
 dist/skills/       Skill directories (each contains SKILL.md)
 dist/AGENTS.md     Distributable rules payload — the canonical, tool-agnostic source
 reference/         Fetched reference documentation (repo-dev-time only, not installed)
-install.sh         Install/uninstall script (project-local only, always copies)
+install.sh         Install/uninstall script
 ```

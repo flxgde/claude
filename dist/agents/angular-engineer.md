@@ -4,7 +4,7 @@ description: Angular frontend engineer. Use when implementing a new feature in t
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 memory: user
-skills: [angular-patterns, primeng-patterns, tailwind-patterns, frontend-design, clean-code]
+skills: [angular-patterns, taigaui-patterns, tailwind-patterns, clean-code, testing-patterns, openapi-generator-patterns, security-review]
 permissions:
   allow:
     - "Bash(npm:*)"

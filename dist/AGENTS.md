@@ -82,8 +82,8 @@ Every file read in the main context is re-sent as input tokens on *every subsequ
 <!-- IF_AGENT:architect -->
 | New project, system design, tech selection, architectural decision | `architect` |
 <!-- END_IF -->
-<!-- IF_AGENT:api-designer -->
-| API contract: new endpoints, spec changes, pre-generation review | `api-designer` |
+<!-- IF_AGENT:api-contract-engineer -->
+| API contract: new endpoints, spec changes, pre-generation review | `api-contract-engineer` |
 <!-- END_IF -->
 <!-- IF_AGENT:spring-boot-engineer -->
 | Backend implementation or bugfix: Spring Boot / Kotlin code, openapi-generator | `spring-boot-engineer` |
@@ -133,22 +133,24 @@ These apply to all new projects unless the project context says otherwise.
 <!-- IF_AGENT:spring-boot-engineer,spring-boot-reviewer -->
 ### Language & Framework
 
-- **Backend**: Kotlin with Spring Boot — prefer Kotlin for all new projects
-- Fall back to Java only when working in an existing Java codebase
-- No Lombok — Kotlin data classes, extension functions, and null safety make it unnecessary
+- **Backend**: Spring Boot — prefer Kotlin for all new projects, but Java is fully supported
+- Follow whichever language an existing codebase already uses; don't migrate it without asking
+- Kotlin: no Lombok — data classes, extension functions, and null safety make it unnecessary
+- Java: no Lombok on new code either — records and hand-written constructors cover most of what it hides; follow the existing convention if a project already relies on it
 <!-- END_IF -->
 
 <!-- IF_AGENT:spring-boot-engineer,spring-boot-reviewer -->
 ### Serialization
 
-- Use **kotlinx.serialization** (`@Serializable`) — avoid Jackson unless a dependency forces it
-- If Jackson is unavoidable, flag it explicitly and keep it isolated
+- Kotlin: use **kotlinx.serialization** (`@Serializable`) — avoid Jackson unless a dependency forces it
+- Java: Jackson is the expected default — no reason to avoid it
+- If Jackson is unavoidable on a Kotlin project, flag it explicitly and keep it isolated
 <!-- END_IF -->
 
 <!-- IF_AGENT:spring-boot-engineer,spring-boot-reviewer -->
 ### Build Tool
 
-- **Gradle** (Kotlin DSL: `build.gradle.kts` / `settings.gradle.kts`)
+- **Gradle** (Kotlin DSL `build.gradle.kts`/`settings.gradle.kts` for a Kotlin project; Groovy or Kotlin DSL for a Java project, following what's already there)
 - Manage all dependency versions in `gradle/libs.versions.toml` (version catalog)
 - Keep Gradle files minimal — no unnecessary plugins, configurations, or boilerplate
 - Always use the latest stable versions of dependencies
@@ -163,7 +165,7 @@ These apply to all new projects unless the project context says otherwise.
 - Base Kotlin/Java package: `de.flxg`
 <!-- END_IF -->
 
-<!-- IF_AGENT:api-designer -->
+<!-- IF_AGENT:api-contract-engineer -->
 ### API First
 
 - The OpenAPI spec is the contract between backend and frontend — design it before writing code
@@ -207,7 +209,7 @@ These are defaults — suggest alternatives when a use case clearly calls for so
 - Always write tests for generated code: both positive (happy path) and negative (error/edge cases) cases
 <!-- IF_AGENT:spring-boot-engineer,spring-boot-reviewer -->
 - Unit tests for service layer; slice tests (`@WebMvcTest`) for controllers
-- Use Kotlin backtick test names: `` `should return 404 when user not found`() ``
+- Kotlin: backtick test names, e.g. `` `should return 404 when user not found`() ``. Java: `@DisplayName` with the same readable phrasing
 <!-- END_IF -->
 
 ### CI/CD

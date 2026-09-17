@@ -6,6 +6,7 @@ _kubernetes_group() { echo "DevOps"; }
 
 _kubernetes_apply() {
   DETECTED_AGENTS+=(kubernetes-engineer)
+  DETECTED_SKILLS+=(kubernetes-patterns)
 }
 
 detect_kubernetes() {

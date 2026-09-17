@@ -4,6 +4,8 @@ description: Kubernetes and Helm specialist. Use when creating or updating Helm 
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 memory: user
+skills:
+  - kubernetes-patterns
 permissions:
   allow:
     - "Bash(kubectl:*)"

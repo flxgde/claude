@@ -106,7 +106,7 @@ Detection signals (start simple, extend over time):
 | `**/templates/*.yaml` + `Chart.yaml`, or `k8s/`/`helm/` dirs | `kubernetes-engineer` |
 | Flyway migrations, `spring-boot-starter-data-jpa` in build file | `postgres-engineer` |
 | `spring-boot-starter-data-mongodb` in build file | `mongodb-engineer` |
-| `openapi.yaml`/`openapi.yml` at repo root | `api-designer` |
+| `openapi.yaml`/`openapi.yml` at repo root | `api-contract-engineer` |
 
 Auto mode should always be overridable — show what it picked and why (one line per signal matched),
 and let `--agents`/`--skills` flags or the interactive picker still take precedence when passed

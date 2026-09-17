@@ -23,10 +23,10 @@ _kotlin_group() { echo "Backend"; }
 
 _kotlin_apply() {
   DETECTED_AGENTS+=(spring-boot-engineer spring-boot-reviewer)
-  # clean-code is language-agnostic (see dist/skills/clean-code/SKILL.md) and listed in both
-  # spring-boot-engineer's and spring-boot-reviewer's own `skills:` frontmatter — it belongs
-  # wherever those agents do, not behind its own detection signal.
-  DETECTED_SKILLS+=(kotlin-patterns logging-patterns clean-code)
+  # clean-code, testing-patterns, and security-review are language-agnostic (see their SKILL.md
+  # files) and listed in both spring-boot-engineer's and spring-boot-reviewer's own `skills:`
+  # frontmatter — they belong wherever those agents do, not behind their own detection signal.
+  DETECTED_SKILLS+=(kotlin-patterns spring-boot-patterns logging-patterns clean-code testing-patterns security-review)
 }
 
 detect_kotlin() {

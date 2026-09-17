@@ -6,6 +6,7 @@ _security_group() { echo "DevOps"; }
 
 _security_apply() {
   DETECTED_AGENTS+=(security-engineer)
+  DETECTED_SKILLS+=(security-review keycloak-patterns)
 }
 
 detect_security() {

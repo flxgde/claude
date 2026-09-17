@@ -5,7 +5,8 @@ _openapi_label() { echo "OpenAPI / API contract"; }
 _openapi_group() { echo "DevOps"; }
 
 _openapi_apply() {
-  DETECTED_AGENTS+=(api-designer)
+  DETECTED_AGENTS+=(api-contract-engineer)
+  DETECTED_SKILLS+=(api-design-review openapi-generator-patterns)
 }
 
 detect_openapi() {

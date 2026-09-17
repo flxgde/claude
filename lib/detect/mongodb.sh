@@ -6,6 +6,7 @@ _mongodb_group() { echo "Database"; }
 
 _mongodb_apply() {
   DETECTED_AGENTS+=(mongodb-engineer)
+  DETECTED_SKILLS+=(mongodb-patterns)
 }
 
 detect_mongodb() {

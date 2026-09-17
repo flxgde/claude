@@ -6,10 +6,13 @@ _angular_group() { echo "Frontend"; }
 
 _angular_apply() {
   DETECTED_AGENTS+=(angular-engineer angular-reviewer)
-  # clean-code is language-agnostic (see dist/skills/clean-code/SKILL.md) and listed in both
-  # angular-engineer's and angular-reviewer's own `skills:` frontmatter — it belongs wherever
-  # those agents do, not behind its own detection signal.
-  DETECTED_SKILLS+=(angular-patterns clean-code)
+  # clean-code, testing-patterns, and security-review are language-agnostic (see their SKILL.md
+  # files) and listed in both angular-engineer's and angular-reviewer's own `skills:` frontmatter —
+  # they belong wherever those agents do, not behind their own detection signal.
+  # tailwind-patterns/taigaui-patterns are NOT added here on purpose — see tailwind.sh/taigaui.sh,
+  # which detect them independently (a project could use Angular with neither, e.g. plain CSS +
+  # no component library).
+  DETECTED_SKILLS+=(angular-patterns clean-code testing-patterns security-review)
 }
 
 detect_angular() {

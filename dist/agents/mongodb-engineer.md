@@ -4,6 +4,8 @@ description: MongoDB specialist. Use when designing document schemas, writing ag
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 memory: user
+skills:
+  - mongodb-patterns
 permissions:
   allow:
     - "Bash(mongosh:*)"

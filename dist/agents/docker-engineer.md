@@ -4,6 +4,8 @@ description: Docker specialist. Use when writing or optimizing Dockerfiles for K
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: sonnet
 memory: user
+skills:
+  - docker-patterns
 permissions:
   allow:
     - "Bash(docker:*)"

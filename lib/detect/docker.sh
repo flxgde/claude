@@ -6,6 +6,7 @@ _docker_group() { echo "DevOps"; }
 
 _docker_apply() {
   DETECTED_AGENTS+=(docker-engineer)
+  DETECTED_SKILLS+=(docker-patterns)
 }
 
 detect_docker() {

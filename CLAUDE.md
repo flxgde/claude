@@ -96,12 +96,13 @@ find . -maxdepth 3
 # group list instead of appending unknowns.
 
 # When touching lib/detect/*.sh specifically: pure-Java-no-Kotlin must get spring-boot-engineer/
-# reviewer + logging-patterns + clean-code but NOT kotlin-patterns; a mixed project with both
-# src/main/kotlin and src/main/java must get exactly one backend note (kotlin.sh wins) and DOES get
-# kotlin-patterns (also with clean-code, from _kotlin_apply() this time, not _java_apply()).
+# reviewer + java-patterns + logging-patterns + clean-code but NOT kotlin-patterns; a mixed project
+# with both src/main/kotlin and src/main/java must get exactly one backend note (kotlin.sh wins)
+# and DOES get kotlin-patterns (also with clean-code, from _kotlin_apply() this time, not
+# _java_apply()) and must NOT also get java-patterns.
 mkdir -p pure-java-spring/src/main/java && cd pure-java-spring
 printf "implementation 'org.springframework.boot:spring-boot-starter-web'\n" > build.gradle
-/path/to/repo/install.sh --auto --no-confirm --dry-run   # must show logging-patterns + clean-code, no kotlin-patterns
+/path/to/repo/install.sh --auto --no-confirm --dry-run   # must show java-patterns + logging-patterns + clean-code, no kotlin-patterns
 
 # When touching dist/AGENTS.md's IF_AGENT blocks or lib/actions.sh's render_agents_md()/
 # compute_effective_agents(): a narrow selection's installed AGENTS.md must not mention any agent
@@ -494,6 +495,25 @@ in `## Conventions when adding or editing an agent/skill` below):
   meaningful (see the OpenCode rendering mapping below).
 - Cross-check against `README.md`'s agent table and `dist/AGENTS.md`'s dispatch table for the same
   agent — these should agree on model and capability framing, per the sync-by-hand note below.
+- **Check the install wizard picks it up.** A new agent/skill isn't done once the file exists under
+  `dist/` — verify it's actually reachable through `install.sh`:
+  - Run `install.sh --auto --no-confirm --dry-run` against a scratch dir seeded with a file signal
+    for it (if one exists — e.g. an `openapi.yaml` for `api-contract-engineer`/`api-design-review`/
+    `openapi-generator-patterns`) and confirm Auto detects it. A new agent tied to a stack signal
+    needs a `detect_<name>()`/`_<name>_apply()` in `lib/detect/*.sh` — and `_<name>_apply()` must
+    add both the agent *and* any skill(s) it needs to `DETECTED_AGENTS`/`DETECTED_SKILLS` (a skill
+    listed only in the agent's own frontmatter `skills:` field is NOT enough to get it installed —
+    that field only controls what Claude Code loads for an already-installed agent, not what the
+    wizard selects; this exact gap was a real bug once — the skill that's now split into
+    `api-design-review`/`openapi-generator-patterns` was added to `api-contract-engineer`'s
+    frontmatter but missing from `_openapi_apply()`, so Auto installed the agent without its
+    skill).
+  - Also run the plain interactive `install.sh --dry-run` picker path (or the numbered fallback) and
+    confirm the new agent/skill shows up as a selectable option, and Guided mode's multi-select
+    shows it under the right `_<name>_group()` if it has file-level detection.
+  - An agent/skill with no natural file signal (like `architect`/`doc-writer`, or an on-demand skill
+    like `design-patterns`) is exempt from the Auto check above by design — just confirm it's still
+    selectable via Manual/`-a`/`-s`.
 
 ## Conventions when adding or editing an agent/skill
 

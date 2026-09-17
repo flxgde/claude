@@ -126,9 +126,9 @@ full breakdown, bypassing the leading question.
 | Agent | Model | Description |
 |---|---|---|
 | `architect` | opus | Project structure, technology choices, ADRs |
-| `api-designer` | sonnet | OpenAPI spec design and validation |
-| `spring-boot-engineer` | inherit | Kotlin/Spring Boot feature implementation |
-| `spring-boot-reviewer` | haiku | Kotlin/Spring Boot code review |
+| `api-contract-engineer` | sonnet | OpenAPI spec design and validation |
+| `spring-boot-engineer` | inherit | Spring Boot feature implementation (Kotlin or Java) |
+| `spring-boot-reviewer` | haiku | Spring Boot code review (Kotlin or Java) |
 | `angular-engineer` | inherit | Angular frontend implementation |
 | `angular-reviewer` | haiku | Angular code review |
 | `security-engineer` | sonnet | Security review (OWASP, Spring Security, K8s) |
@@ -144,14 +144,24 @@ full breakdown, bypassing the leading question.
 | Skill | Used by |
 |---|---|
 | `kotlin-patterns` | spring-boot-engineer, spring-boot-reviewer |
+| `java-patterns` | spring-boot-engineer, spring-boot-reviewer |
+| `spring-boot-patterns` | spring-boot-engineer, spring-boot-reviewer |
 | `jpa-patterns` | spring-boot-engineer, spring-boot-reviewer |
 | `logging-patterns` | spring-boot-engineer |
 | `design-patterns` | spring-boot-engineer |
 | `angular-patterns` | angular-engineer, angular-reviewer |
 | `tailwind-patterns` | angular-engineer, angular-reviewer |
+| `taigaui-patterns` | angular-engineer, angular-reviewer |
 | `clean-code` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
+| `testing-patterns` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
+| `security-review` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer, security-engineer |
 | `ansible-automation` | ansible-engineer |
-| `openapi-patterns` | api-designer |
+| `api-design-review` | api-contract-engineer, spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
+| `openapi-generator-patterns` | api-contract-engineer, spring-boot-engineer, angular-engineer |
+| `mongodb-patterns` | mongodb-engineer |
+| `docker-patterns` | docker-engineer |
+| `kubernetes-patterns` | kubernetes-engineer |
+| `keycloak-patterns` | security-engineer |
 
 ## Structure
 
@@ -169,7 +179,7 @@ These are preferences, not hard rules — alternatives are suggested when clearl
 
 | Concern | Default |
 |---|---|
-| Backend | Kotlin + Spring Boot |
+| Backend | Spring Boot (Kotlin preferred, Java fully supported) |
 | Build | Gradle (Kotlin DSL) + `libs.versions.toml` |
 | Frontend | Angular (TypeScript, zoneless, signals) |
 | Relational DB | PostgreSQL |

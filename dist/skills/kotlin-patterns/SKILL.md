@@ -414,24 +414,10 @@ fun calcTaxes(): BigDecimal = TODO("Waiting for tax rule spec from business")
 
 ---
 
-## Spring Boot Patterns
+## Spring Boot integration
 
-```kotlin
-// Constructor injection — always; never @Autowired on fields
-@Service
-class UserService(
-    private val userRepository: UserRepository,
-    private val emailService: EmailService,
-)
-
-// Type-safe config
-@ConfigurationProperties(prefix = "app.mail")
-data class MailProperties(
-    val host: String,
-    val port: Int = 587,
-    val from: String,
-)
-
-// Mockito-Kotlin in tests
-whenever(userRepository.findById(1L)).thenReturn(Optional.of(testUser))
-```
+For framework-level Spring Boot conventions (dependency injection, transaction boundaries,
+layering, profiles, Boot 4 migration pitfalls), see `spring-boot-patterns` — those apply
+identically regardless of language. The only Kotlin-specific note: use a primary-constructor `data
+class` for `@ConfigurationProperties` (see the Data Classes section above) and Mockito-Kotlin's
+`whenever(...)` (not plain Mockito's `when(...)`, which collides with the `when` keyword) in tests.

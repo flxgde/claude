@@ -1,9 +1,9 @@
 ---
-name: openapi-patterns
-description: OpenAPI specification design best practices — design-first workflow, single source of truth, source control, tooling, and structuring large specs. Use when designing, splitting, or reviewing an OpenAPI spec.
+name: api-design-review
+description: API contract design and review conventions — design-first workflow, single source of truth, source control, structuring large specs, and what "matches the contract" actually means for a generated client/server. Use when designing, splitting, or reviewing an OpenAPI spec, or when reviewing generated-code usage for contract compliance. For openapi-generator configuration/usage itself, see openapi-generator-patterns.
 ---
 
-# OpenAPI Best Practices
+# API Design & Review
 
 Reference: [learn.openapis.org/best-practices.html](https://learn.openapis.org/best-practices.html)
 
@@ -53,9 +53,29 @@ input.
 - **Tag every operation** so tooling (and generated client/server code — see the naming conventions
   below) can group and navigate by resource area.
 
+## Reviewing generated-code usage for contract compliance
+
+This is the half of "API design review" that applies on the backend/frontend side, after the spec
+already exists — checking that the code built against it hasn't quietly drifted from the contract:
+
+- The controller/service implements the **generated** interface — no hand-written
+  `@RequestMapping`/route that bypasses what the spec declares.
+- Response types and status codes match what the spec declares — not just "returns something
+  plausible."
+- The error response body's shape matches the spec's declared error schema, including on paths
+  that only fail sometimes (validation errors, 404s) — these are the ones most often only
+  hand-tested against the happy path and never checked against the schema.
+- A frontend call site's request payload matches the generated request type — a manually
+  constructed object literal that happens to satisfy TypeScript's structural typing can still be
+  missing a field the backend requires, if a type import ever gets loosened to `any`/`Partial<T>`.
+
 ## Applying this alongside REST/schema conventions
 
-This skill covers spec-level process and structure. For the concrete conventions this project uses
-inside a spec — resource naming, required fields per operation, schema naming, pagination shape,
-breaking-change rules — see the "Designing new endpoints" section of the `api-designer` agent itself;
-that content is project-specific and stays in the agent's own instructions rather than duplicated here.
+This skill covers spec-level process, structure, and generated-code compliance review. For the
+concrete conventions this project uses inside a spec — resource naming, required fields per
+operation, schema naming, pagination shape, breaking-change rules — see the "Designing new
+endpoints" section of the `api-contract-engineer` agent itself; that content is project-specific
+and stays in the agent's own instructions rather than duplicated here. For how to actually run and
+configure `openapi-generator` (Spring Boot / Angular generator options, generated-code layout,
+regeneration workflow), see `openapi-generator-patterns` instead — this skill is about the contract
+itself, not the tool that turns it into code.

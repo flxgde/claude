@@ -1,11 +1,12 @@
 ---
-name: api-designer
+name: api-contract-engineer
 description: OpenAPI specification specialist. Use when designing new API contracts, adding or modifying endpoints in the OpenAPI spec, reviewing a spec for correctness and REST conventions, or validating the spec before code generation. The spec is the contract between backend and frontend — all API changes start here.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 memory: user
 skills:
-  - openapi-patterns
+  - api-design-review
+  - openapi-generator-patterns
 permissions:
   allow:
     - "Bash(npx @stoplight/spectral-cli:*)"

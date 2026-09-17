@@ -526,10 +526,11 @@ in `## Conventions when adding or editing an agent/skill` below):
   render, too — it's what decides `permission.edit: deny` there.
 - Keep `dist/AGENTS.md`'s agent-dispatch table, `README.md`'s agent/skill tables, and the actual
   frontmatter (`model:`, `tools:`) in sync by hand — the *row text* (trigger phrase, tech-default
-  bullets) is still hand-authored, not generated, and they have drifted before (README currently
-  lists `spring-boot-engineer`/`angular-engineer` as `model: inherit`; the frontmatter says
-  `sonnet` — check the `.md` file itself, not the README table, when it matters). What *is*
-  automatic at install time is which rows survive — see the `dist/AGENTS.md` section above.
+  bullets) is still hand-authored, not generated, and they have drifted before (README once listed
+  `spring-boot-engineer`/`angular-engineer` as `model: inherit` while the frontmatter said
+  `sonnet` — fixed, but check the `.md` file itself, not the README table, when it matters; a
+  disagreement means one of them is stale). What *is* automatic at install time is which rows
+  survive — see the `dist/AGENTS.md` section above.
 - Keep frontmatter in the plain, single-line-value shape the OpenCode transform expects (see the
   `dist/agents/*.md` section above) — a multi-line `description:` or reformatted `permissions.allow`
   block will parse fine for Claude Code but silently produce an incomplete OpenCode file.

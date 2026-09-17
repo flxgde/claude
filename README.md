@@ -1,125 +1,62 @@
 # claude
 
-Personal AI coding assistant configuration — agents, skills, and reference material for
-**Claude Code** and **OpenCode**. Versioned here, installed project-locally via `install.sh`.
+Agent, skill, and rules bundle for **Claude Code** and **OpenCode**. Installed project-locally via
+`install.sh` — no global install, always copies (no symlinks).
 
 ## Install
 
-Always installs into the current directory — there's no global install option; agents, skills, and
-rules are meant to be project-local. By default installs for both tools; pass `--tool claude` or
-`--tool opencode` to install for just one.
-
 ```bash
-# One-shot from the web — run from the target project's directory, no clone needed
-cd ~/projects/myapp
 curl -fsSL https://raw.githubusercontent.com/flxgde/claude/main/install.sh | bash
 ```
 
-Or from a local checkout of this repo — same flags either way, just invoke `install.sh` by path instead
-of piping it through `bash`:
+Run from the target project's directory. From a local checkout, invoke `install.sh` by path instead
+of piping through `bash` — same flags either way.
 
-```bash
-# Run from the target project's directory
-cd ~/projects/myapp
+### Common flags
 
-# Install everything for both Claude Code and OpenCode
-/path/to/claude/install.sh
+| Flag | Effect |
+|---|---|
+| `--dry-run` | Preview without writing anything |
+| `--auto` | Detect the project's stack and install exactly what applies |
+| `--tool claude\|opencode\|both` | Which tool(s) to install for (default `both`) |
+| `--agents <names>` / `--skills <names>` | Install specific agents/skills (comma-separated, or `none`) |
+| `--practices <ids>` | Which `AGENTS.md` working-style sections to include (comma-separated, `all`, `none`) |
+| `--no-confirm` | Non-interactive; everything unset falls back to sane defaults |
+| `--uninstall` | Remove everything a previous install added |
+| `--help` | Full usage |
 
-# Just one tool
-/path/to/claude/install.sh --tool opencode
+Without `--auto`/`--agents`/`--skills`/`--no-confirm`, an interactive wizard walks through setup
+(see below).
 
-# Preview without making changes
-/path/to/claude/install.sh --dry-run
+### Setup modes
 
-# Install specific agents and skills
-/path/to/claude/install.sh --agents spring-boot-engineer,angular-engineer \
-                            --skills kotlin-patterns,angular-patterns
+- **Auto** — scans the project for concrete signals (build files, `angular.json`, `Dockerfile`,
+  Helm charts, an OpenAPI spec, DB dependencies, ...) and installs exactly what matches. Only
+  offered when something is actually detected.
+- **Guided** — pick your stack from a multi-select list; no file scanning, works in an empty
+  project.
+- **Manual** — pick agents and skills directly.
 
-# Detect this project's stack and install exactly what applies
-/path/to/claude/install.sh --auto
+The git-workflow question and the best-practices multi-select are always asked afterward,
+regardless of setup mode — they configure `AGENTS.md`'s content, independent of which agents/skills
+get installed.
 
-# Uninstall
-/path/to/claude/install.sh --uninstall
-```
+### Git workflow
 
-Run `./install.sh --help` for full usage.
-
-### Setup modes: Auto / Guided / Manual
-
-Interactively (and whenever you haven't already passed `-a`/`-s`), the wizard leads with how to
-pick agents and skills:
-
-- **Auto** — scans the target project for concrete signals: a `build.gradle.kts`/`pom.xml` with a
-  Spring Boot dependency, `angular.json`, `Dockerfile`/`docker-compose.yml`, a Helm chart, an
-  OpenAPI spec, database driver dependencies, and so on — and installs exactly what matches,
-  explaining what it found before doing so. Conservative by design: only agents/skills tied to an
-  actual file-level signal get selected; generic ones (`architect`, `doc-writer`) are never
-  auto-added. Only offered when something was actually detected — on an empty/unrecognizable
-  directory it's simply not a choice (or, with `--auto` the flag, fails with a clear message
-  instead of installing nothing useful).
-- **Guided** — pick your tech stack (Kotlin, Java, Angular, PostgreSQL, MongoDB, Docker,
-  Kubernetes, Security/Keycloak, OpenAPI, ...) from one multi-select list, and the matching
-  agents/skills are installed for you — no file scanning involved, so it works in an empty
-  directory too (e.g. before writing any code).
-- **Manual** — pick agents and skills directly, the original picker flow.
-
-`--auto` on the command line skips straight to Auto (or fails clearly if nothing's detected and
-neither `-a` nor `-s` was given); there's no flag equivalent for Guided, since it's inherently an
-interactive Q&A.
-
-The git-workflow question (below) is always asked afterward, regardless of which of the three you
-picked — it configures AGENTS.md's content, a separate concern from which agents/skills get
-installed.
-
-### Best practices
-
-Also asked afterward, regardless of setup mode: a multi-select of six `AGENTS.md` working-style
-sections — Plan Mode Default, Self-Improvement Loop, Verification Before Done, Demand Elegance,
-Skills, Sub-agents — everything included by default, so you deselect the ones you don't want
-instead of picking from scratch. `--practices <ids>` sets it non-interactively
-(comma-separated, `all`, or `none`); `--no-confirm` defaults to `all`.
+One leading question — **no git** (default), **commit locally**, or **Custom** (the full
+breakdown: git usage, auto-commit, feature-branch + MR flow, who opens the MR, direct push). Skip
+straight to the full breakdown with `--git-wizard`, or set it non-interactively with
+`--use-git`/`--auto-commit`/`--use-mrs`/`--create-mrs`/`--push-direct` (all default `no`).
 
 ### What gets installed where
 
 | File | Tool | Notes |
 |---|---|---|
-| `./AGENTS.md` | Both | Canonical shared rules payload; OpenCode reads this natively. Tailored to your selection — the agent-dispatch table and stack-specific conventions only mention agents you actually installed |
-| `./.claude/CLAUDE.md` | Claude Code | `@AGENTS.md` import — Claude Code only ever reads `CLAUDE.md`. Appended to existing content rather than overwritten if the file already has some. |
+| `./AGENTS.md` | Both | Shared rules payload; OpenCode reads it natively. Tailored to your selection |
+| `./.claude/CLAUDE.md` | Claude Code | `@AGENTS.md` import, appended to existing content if any |
 | `./.claude/agents/*.md` | Claude Code | Subagent definitions |
-| `./.claude/skills/<name>/` | Both | Skills — OpenCode reads this exact path directly, so there's no separate copy |
-| `./.opencode/agents/*.md` | OpenCode | Rendered from the same `dist/agents/` source, translated to OpenCode's frontmatter schema |
-
-Agents are authored once, in Claude Code's frontmatter dialect (`dist/agents/*.md`), and the
-OpenCode version is generated at install time — `model:`, `skills:`, and `memory:` have no OpenCode
-equivalent and are dropped; `permissions.allow` Bash patterns become `permission.bash` entries; the
-`model:` field is deliberately left unset in the OpenCode output so the agent inherits whichever
-provider/model you've configured there instead of assuming Anthropic.
-
-### Git workflow
-
-`AGENTS.md`'s "Git Workflow" section is generated at install time, not static. It's always asked
-interactively, regardless of which setup mode (Auto/Guided/Manual) you picked above — it's a
-separate concern from which agents/skills get installed. One leading question — **no git**
-(recommended default), **commit locally**, or **Custom** — rather than five questions up front;
-Custom opens the full breakdown (does it use git, auto-commit, work via feature branch + MR, open
-that MR itself, push directly to main — each independently).
-
-Under `--no-confirm`, or if you pass any of the flags below, no question is asked at all: flags win
-outright, and anything left unset takes the "no git" default for that one dimension.
-`--use-git` (default `no`), `--auto-commit` (default `no`), `--use-mrs` (default `no`),
-`--create-mrs` (default `no`), `--push-direct` (default `no`). `--git-wizard` skips straight to the
-full breakdown, bypassing the leading question.
-
-```bash
-# Silent: no git at all (the default)
-./install.sh --no-confirm
-
-# Silent, but with local auto-commit turned on
-./install.sh --no-confirm --use-git yes --auto-commit yes
-
-# Skip the leading question, go straight to the full breakdown
-./install.sh --git-wizard
-```
+| `./.claude/skills/<name>/` | Both | OpenCode reads this same path directly |
+| `./.opencode/agents/*.md` | OpenCode | Rendered from `dist/agents/` at install time |
 
 ## Agents
 
@@ -127,11 +64,11 @@ full breakdown, bypassing the leading question.
 |---|---|---|
 | `architect` | opus | Project structure, technology choices, ADRs |
 | `api-contract-engineer` | sonnet | OpenAPI spec design and validation |
-| `spring-boot-engineer` | inherit | Spring Boot feature implementation (Kotlin or Java) |
+| `spring-boot-engineer` | sonnet | Spring Boot feature implementation (Kotlin or Java) |
 | `spring-boot-reviewer` | haiku | Spring Boot code review (Kotlin or Java) |
-| `angular-engineer` | inherit | Angular frontend implementation |
+| `angular-engineer` | sonnet | Angular frontend implementation |
 | `angular-reviewer` | haiku | Angular code review |
-| `security-engineer` | sonnet | Security review (OWASP, Spring Security, K8s) |
+| `security-engineer` | sonnet | Security review (OWASP, Spring Security, Keycloak, K8s) |
 | `docker-engineer` | sonnet | Dockerfiles, Docker Compose, multi-stage builds |
 | `kubernetes-engineer` | sonnet | Helm charts, K8s manifests, GitHub Actions CI/CD |
 | `ansible-engineer` | sonnet | Ansible playbooks, roles, server provisioning/config management |
@@ -143,39 +80,25 @@ full breakdown, bypassing the leading question.
 
 | Skill | Used by |
 |---|---|
-| `kotlin-patterns` | spring-boot-engineer, spring-boot-reviewer |
-| `java-patterns` | spring-boot-engineer, spring-boot-reviewer |
+| `kotlin-patterns` / `java-patterns` | spring-boot-engineer, spring-boot-reviewer |
 | `spring-boot-patterns` | spring-boot-engineer, spring-boot-reviewer |
 | `jpa-patterns` | spring-boot-engineer, spring-boot-reviewer |
 | `logging-patterns` | spring-boot-engineer |
 | `design-patterns` | spring-boot-engineer |
 | `angular-patterns` | angular-engineer, angular-reviewer |
-| `tailwind-patterns` | angular-engineer, angular-reviewer |
-| `taigaui-patterns` | angular-engineer, angular-reviewer |
-| `clean-code` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
-| `testing-patterns` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
-| `security-review` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer, security-engineer |
-| `ansible-automation` | ansible-engineer |
-| `api-design-review` | api-contract-engineer, spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
+| `tailwind-patterns` / `taigaui-patterns` | angular-engineer, angular-reviewer |
+| `clean-code` / `testing-patterns` / `security-review` | spring-boot-engineer/-reviewer, angular-engineer/-reviewer, security-engineer |
+| `api-design-review` | api-contract-engineer, spring-boot-engineer/-reviewer, angular-engineer/-reviewer |
 | `openapi-generator-patterns` | api-contract-engineer, spring-boot-engineer, angular-engineer |
 | `mongodb-patterns` | mongodb-engineer |
 | `docker-patterns` | docker-engineer |
 | `kubernetes-patterns` | kubernetes-engineer |
 | `keycloak-patterns` | security-engineer |
-
-## Structure
-
-```
-dist/agents/       Agent source files (*.md, Claude Code frontmatter dialect)
-dist/skills/       Skill directories (each contains SKILL.md)
-dist/AGENTS.md     Distributable rules payload — the canonical, tool-agnostic source
-reference/         Fetched reference documentation (repo-dev-time only, not installed)
-install.sh         Install/uninstall script (project-local only, always copies)
-```
+| `ansible-automation` | ansible-engineer |
 
 ## Tech defaults
 
-These are preferences, not hard rules — alternatives are suggested when clearly better.
+Preferences, not hard rules — alternatives suggested when clearly better.
 
 | Concern | Default |
 |---|---|
@@ -188,3 +111,13 @@ These are preferences, not hard rules — alternatives are suggested when clearl
 | Auth/SSO | Keycloak |
 | Containers | Docker Compose (local), Kubernetes + Helm (prod) |
 | CI/CD | GitHub Actions |
+
+## Structure
+
+```
+dist/agents/       Agent source files (*.md, Claude Code frontmatter dialect)
+dist/skills/       Skill directories (each contains SKILL.md)
+dist/AGENTS.md     Distributable rules payload — the canonical, tool-agnostic source
+reference/         Fetched reference documentation (repo-dev-time only, not installed)
+install.sh         Install/uninstall script (project-local only, always copies)
+```

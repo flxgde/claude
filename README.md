@@ -148,8 +148,10 @@ full breakdown, bypassing the leading question.
 | `logging-patterns` | spring-boot-engineer |
 | `design-patterns` | spring-boot-engineer |
 | `angular-patterns` | angular-engineer, angular-reviewer |
+| `tailwind-patterns` | angular-engineer, angular-reviewer |
 | `clean-code` | spring-boot-engineer, spring-boot-reviewer, angular-engineer, angular-reviewer |
 | `ansible-automation` | ansible-engineer |
+| `openapi-patterns` | api-designer |
 
 ## Structure
 

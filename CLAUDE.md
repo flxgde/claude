@@ -203,6 +203,14 @@ self-contained knowledge doc (idioms, pitfalls, patterns) an agent loads for its
 `angular-patterns` backs `angular-engineer`/`angular-reviewer`. Discovered the same way as agents
 (directory glob), so no registry to maintain beyond `README.md`'s skills table.
 
+A skill directory isn't limited to a single `SKILL.md` — the installer copies it with `cp -r`
+(`run_install()` in `lib/actions.sh`), so any files alongside `SKILL.md` come along for free, no
+installer changes needed. Use a `references/*.md` subdirectory once a skill's full detail would
+make `SKILL.md` unwieldy to scan (`tailwind-patterns` is the example: `SKILL.md` stays a short
+overview + navigation, `references/components.md` and `references/advanced.md` hold the worked
+examples) — link to each reference file by name from `SKILL.md` and only split when the flat file
+actually gets hard to navigate, not preemptively for a short skill like `clean-code`.
+
 Skills install to a single path, `.claude/skills/<name>/`, regardless of `--tool` — OpenCode's skill
 discovery reads that exact Claude-compatible path natively, so there is nothing to render or duplicate
 for it. Don't add a `.opencode/skills/` copy step; it would be redundant.
@@ -459,6 +467,33 @@ No dependencies beyond bash/curl/tar/sed/awk (fzf optional, for the interactive 
   (`step "$STEP_IDX_REVIEW" "${WIZARD_STEPS[$STEP_IDX_REVIEW]}"`) so the displayed number reflects
   the step's real position regardless of what got skipped before it. If you add a new wizard stage,
   give it a `STEP_IDX_*` constant in `install.sh` rather than reintroducing a counter.
+
+## Review checklist: designing agents/skills under `dist/`
+
+This repo's actual product is the `dist/agents/*.md` frontmatter — the `tools:`/`model:` values are
+what get installed into downstream projects and directly control those agents' capability and cost
+there. Every time an agent under `dist/agents/` is added or edited, check its frontmatter against
+this list before considering the change done (this is in addition to the sync-by-hand requirements
+in `## Conventions when adding or editing an agent/skill` below):
+
+- **Tools stay minimal for the agent's actual job.** Default to the smallest `tools:` list that
+  covers what the agent needs to do, not the full implementer set out of habit. A `*-reviewer` agent
+  must NOT list `Write` or `Edit` — it only reads and reports (`Read, Grep, Glob, Bash`); if you find
+  a reviewer with `Write`/`Edit`, that's a bug, not a style choice, since it's also what
+  `render_opencode_agent()` keys off of to emit `permission.edit: deny` for OpenCode (see
+  `dist/agents/*.md` section below) — a stray `Write`/`Edit` on a reviewer silently breaks that
+  translation too. Conversely, don't strip a tool an implementer genuinely needs (e.g. `Bash` for an
+  agent that must run `gradle`/`openapi-generator`).
+- **Model matches the job's actual weight**, not the most capable option by default: `haiku` for
+  reviewers (cheap, high-volume, mechanical checks), `sonnet` for implementers doing normal
+  feature work, `opus` reserved for the rare agent doing genuinely heavy multi-step reasoning
+  (currently only `architect`). Adding a new agent on `opus`/`sonnet` "to be safe" should be
+  justified, not assumed.
+- **`permissions.allow` Bash patterns are scoped to that agent's domain**, not a blanket
+  `Bash(*:*)` — narrow patterns are also what keeps the generated OpenCode `permission.bash` map
+  meaningful (see the OpenCode rendering mapping below).
+- Cross-check against `README.md`'s agent table and `dist/AGENTS.md`'s dispatch table for the same
+  agent — these should agree on model and capability framing, per the sync-by-hand note below.
 
 ## Conventions when adding or editing an agent/skill
 
